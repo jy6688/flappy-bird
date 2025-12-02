@@ -55,6 +55,8 @@ module vga_bitchange(
 	wire pipe_pixel;
 
 	pipe_renderer pipes(
+		.clk(clk),
+		.reset(1'b0),        // Can connect to a reset signal if available
 		.hCount(hCount),
 		.vCount(vCount),
 		.pipe_pixel(pipe_pixel)
