@@ -52,7 +52,7 @@ module pipe_renderer(
     localparam integer VISIBLE_HEIGHT = 480;  // visible lines from display controller
     localparam integer GAP_MIN_TOP    = 60;
     localparam integer GAP_MAX_TOP    = 320;  // ensure GAP_MAX_TOP + GAP_MAX_SIZE <= VISIBLE_HEIGHT
-    localparam integer GAP_MIN_SIZE   = 110;
+    localparam integer GAP_MIN_SIZE   = 150;
     localparam integer GAP_MAX_SIZE   = 150;
 
     // Current gap positions and sizes (mutable)
@@ -84,9 +84,9 @@ module pipe_renderer(
         gap3_top = 300;
         gap4_top = 120;
         gap1_size = GAP_MIN_SIZE;
-        gap2_size = GAP_MIN_SIZE + 10;
-        gap3_size = GAP_MIN_SIZE + 20;
-        gap4_size = GAP_MIN_SIZE + 30;
+        gap2_size = GAP_MIN_SIZE;
+        gap3_size = GAP_MIN_SIZE;
+        gap4_size = GAP_MIN_SIZE;
         lfsr = 10'h3FF; // non-zero seed
     end
 
