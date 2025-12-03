@@ -24,7 +24,7 @@ module pipe_renderer(
     // Animation Parameters
     // ===============================
     localparam integer PIPE_SPEED     = 1;          // Pixels per move step
-    localparam integer SPEED_DIVIDER  = 1_000_000;  // Clock cycles per move step (faster)
+    localparam integer SPEED_DIVIDER  = 1_000_000;     // Clock cycles per move step (~0.5 ms at 100MHz)
     localparam integer SCREEN_WIDTH   = 800;        // Full scan width (hCount 0..799)
     localparam integer PIPE_SPACING   = 220;        // Distance between pipes (tighter spacing for 4 pipes)
     localparam integer SPAWN_OFFSET   = 80;         // How far off-screen to spawn pipes

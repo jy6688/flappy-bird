@@ -16,7 +16,15 @@ module vga_bitchange(
 	output reg [15:0] score
 );
 
+<<<<<<< Updated upstream
 	reg pipe_run_en;
+=======
+    reg pipe_run_en;
+
+    localparam BLACK      = 12'h000;
+    localparam BACKGROUND = 12'h5CC;
+    localparam PIPE_COLOR = 12'h0F0;
+>>>>>>> Stashed changes
 
 	// ==========================
 	// COLOR CONSTANTS
@@ -25,6 +33,7 @@ module vga_bitchange(
 	localparam BACKGROUND  = 12'b0101_1100_1100;   // teal sky
 	localparam PIPE_COLOR  = 12'h0F0;             // green pipe
 
+<<<<<<< Updated upstream
 
 	// ==========================
 	// BIRD SPRITE (16x16 PX)
@@ -33,6 +42,16 @@ module vga_bitchange(
 	localparam BIRD_Y = 220;
 	localparam SPRITE_W = 16;
 	localparam SPRITE_H = 16;
+=======
+    wire [9:0] bird_y;
+
+    bird_physics bp(
+        .clk(clk),
+        .reset(reset),   // RESET GOES IN
+        .flap_btn(button), // FLAP BUTTON
+        .bird_y(bird_y)
+    );
+>>>>>>> Stashed changes
 
 	wire show_sprite =
 		(hCount >= BIRD_X) && (hCount < BIRD_X + SPRITE_W) &&
@@ -51,6 +70,7 @@ module vga_bitchange(
 		.pixel(sprite_px)
 	);
 
+<<<<<<< Updated upstream
 
 	// ==========================
 	// PIPE RENDERER MODULE
@@ -100,5 +120,28 @@ module vga_bitchange(
 		else
 			rgb = BACKGROUND;
 	end
+=======
+    wire pipe_pixel;
+    // Connect pipe renderer to clock, reset and enable it only while bird is alive (game running)
+    pipe_renderer pipes(
+        .clk(clk),
+        .reset(reset),
+        .enable(pipe_run_en),
+        .hCount(hCount),
+        .vCount(vCount),
+        .pipe_pixel(pipe_pixel)
+    );
+
+    initial score = 0;
+    initial pipe_run_en = 1'b0;
+
+    // Latch start on first flap; clear on reset so pipes stay static until started
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            pipe_run_en <= 1'b0;
+        else if (button)
+            pipe_run_en <= 1'b1;
+    end
+>>>>>>> Stashed changes
 
 endmodule
