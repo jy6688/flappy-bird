@@ -9,11 +9,14 @@
 module vga_bitchange(
 	input clk,
 	input bright,
-	input button,
+	input start_button,
+	input reset_button,
 	input [9:0] hCount, vCount,
 	output reg [11:0] rgb,
 	output reg [15:0] score
 );
+
+	reg pipe_run_en;
 
 	// ==========================
 	// COLOR CONSTANTS
@@ -56,7 +59,8 @@ module vga_bitchange(
 
 	pipe_renderer pipes(
 		.clk(clk),
-		.reset(1'b0),        // Can connect to a reset signal if available
+		.reset(reset_button),
+		.enable(pipe_run_en),
 		.hCount(hCount),
 		.vCount(vCount),
 		.pipe_pixel(pipe_pixel)
@@ -67,6 +71,15 @@ module vga_bitchange(
 	// SCORE (unused now but needed by top file)
 	// ==========================
 	initial score = 0;
+	initial pipe_run_en = 1'b0;
+
+	// Pipes sit still after reset until the start button is pressed.
+	always @(posedge clk or posedge reset_button) begin
+		if (reset_button)
+			pipe_run_en <= 1'b0;
+		else if (start_button)
+			pipe_run_en <= 1'b1;
+	end
 
 
 	// ==========================

@@ -9,6 +9,7 @@
 module pipe_renderer(
     input  wire        clk,
     input  wire        reset,
+    input  wire        enable,
     input  wire [9:0]  hCount,
     input  wire [9:0]  vCount,
     output reg         pipe_pixel
@@ -126,7 +127,7 @@ module pipe_renderer(
             gap3_size     <= GAP_MIN_SIZE + 20;
             gap4_size     <= GAP_MIN_SIZE + 30;
             lfsr          <= 10'h3FF;
-        end else begin
+        end else if (enable) begin
             if (anim_counter == SPEED_DIVIDER-1) begin
                 anim_counter <= 0;
 
