@@ -14,8 +14,8 @@ module vga_bitchange(
     localparam BACKGROUND = 12'h5CC;
     localparam PIPE_COLOR = 12'h0F0;
 
-    localparam SPRITE_W = 32;
-    localparam SPRITE_H = 32;
+    localparam SPRITE_W = 24;
+    localparam SPRITE_H = 24;
     localparam BIRD_X   = 200;
 
     wire [9:0] bird_y;

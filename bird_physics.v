@@ -9,7 +9,7 @@ module bird_physics(
 );
 
     localparam GRAVITY = 2;
-    localparam FLAP_POWER = -10;
+    localparam FLAP_POWER = -6; // smaller jump magnitude
     localparam MAX_FALL = 5;
 
     integer velocity;
@@ -17,12 +17,14 @@ module bird_physics(
     reg [19:0] tick;
     
     integer vtemp;
+    reg game_over;
 
     initial begin
         bird_y = 200;
         velocity = 0;
         tick = 0;
         alive = 0; // start paused at origin
+        game_over = 0;
     end
 
     always @(posedge clk) begin
@@ -31,11 +33,12 @@ module bird_physics(
             bird_y <= 200;
             velocity <= 0;
             alive <= 0; // pause after reset
+            game_over <= 0;
         end
         else if (tick == 0) begin
                 // If not alive, a flap starts the game and applies initial flap power
                 if (!alive) begin
-                    if (flap_btn) begin
+                    if (flap_btn && !game_over) begin
                         // starting flap
                         vtemp = FLAP_POWER;
                         next_y = bird_y + vtemp;
@@ -44,10 +47,12 @@ module bird_physics(
                             bird_y <= 0;
                             alive <= 0;
                             velocity <= 0;
+                            game_over <= 1;
                         end else if (next_y >= 480-32) begin
                             bird_y <= 480-32;
                             alive <= 0;
                             velocity <= 0;
+                            game_over <= 1;
                         end else begin
                             alive <= 1;
                             velocity <= vtemp;
@@ -73,11 +78,13 @@ module bird_physics(
                         bird_y <= 0;
                         alive <= 0;
                         velocity <= 0;
+                        game_over <= 1;
                     end
-                    else if (next_y >= 480-32) begin
-                        bird_y <= 480-32;
+                    else if (next_y >= 480-24) begin
+                        bird_y <= 480-24;
                         alive <= 0;
                         velocity <= 0;
+                        game_over <= 1;
                     end
                     else begin
                         velocity <= vtemp;
