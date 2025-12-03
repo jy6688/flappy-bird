@@ -84,27 +84,24 @@ module pipe_renderer(
         gap3_top = 300;
         gap4_top = 120;
         gap1_size = GAP_MIN_SIZE;
-        gap2_size = GAP_MIN_SIZE + 10;
-        gap3_size = GAP_MIN_SIZE + 20;
-        gap4_size = GAP_MIN_SIZE + 30;
+        gap2_size = GAP_MIN_SIZE;
+        gap3_size = GAP_MIN_SIZE;
+        gap4_size = GAP_MIN_SIZE;
         lfsr = 10'h3FF; // non-zero seed
     end
 
-    // Helper: clamp gap top within limits
-    function [9:0] clamp_gap_top(input [9:0] raw);
+    // Helper: wrap random values into valid ranges instead of clamping to the edges
+    function [9:0] rand_gap_top(input [9:0] raw);
+        localparam integer TOP_RANGE = GAP_MAX_TOP - GAP_MIN_TOP + 1;
     begin
-        if (raw < GAP_MIN_TOP)      clamp_gap_top = GAP_MIN_TOP;
-        else if (raw > GAP_MAX_TOP) clamp_gap_top = GAP_MAX_TOP;
-        else                        clamp_gap_top = raw;
+        rand_gap_top = GAP_MIN_TOP + (raw % TOP_RANGE);
     end
     endfunction
 
-    // Helper: clamp gap size within limits
-    function [8:0] clamp_gap_size(input [8:0] raw);
+    function [8:0] rand_gap_size(input [9:0] raw);
+        localparam integer SIZE_RANGE = GAP_MAX_SIZE - GAP_MIN_SIZE + 1;
     begin
-        if (raw < GAP_MIN_SIZE)      clamp_gap_size = GAP_MIN_SIZE;
-        else if (raw > GAP_MAX_SIZE) clamp_gap_size = GAP_MAX_SIZE;
-        else                         clamp_gap_size = raw;
+        rand_gap_size = GAP_MIN_SIZE + (raw % SIZE_RANGE);
     end
     endfunction
 
@@ -144,8 +141,8 @@ module pipe_renderer(
                                  ? (pipe2_x > pipe3_x ? pipe2_x : pipe3_x)
                                  : pipe4_x) + PIPE_SPACING;
                     if (pipe1_x < RESPAWN_X) pipe1_x <= RESPAWN_X;
-                    gap1_top <= clamp_gap_top(lfsr[9:0]);
-                    gap1_size<= clamp_gap_size({1'b0, lfsr[9:3]}); // use upper bits for size
+                    gap1_top <= rand_gap_top(lfsr[9:0]);
+                    gap1_size<= rand_gap_size({1'b0, lfsr[9:3]}); // use upper bits for size
                 end
 
                 if (pipe2_x > PIPE_SPEED)
@@ -155,8 +152,8 @@ module pipe_renderer(
                                  ? (pipe1_x > pipe3_x ? pipe1_x : pipe3_x)
                                  : pipe4_x) + PIPE_SPACING;
                     if (pipe2_x < RESPAWN_X) pipe2_x <= RESPAWN_X;
-                    gap2_top <= clamp_gap_top(lfsr[9:0] ^ 10'h155); // mix bits so pipes differ
-                    gap2_size<= clamp_gap_size({1'b0, (lfsr[9:3] ^ 7'h2D)});
+                    gap2_top <= rand_gap_top(lfsr[9:0] ^ 10'h155); // mix bits so pipes differ
+                    gap2_size<= rand_gap_size({1'b0, (lfsr[9:3] ^ 7'h2D)});
                 end
 
                 if (pipe3_x > PIPE_SPEED)
@@ -166,8 +163,8 @@ module pipe_renderer(
                                  ? (pipe1_x > pipe2_x ? pipe1_x : pipe2_x)
                                  : pipe4_x) + PIPE_SPACING;
                     if (pipe3_x < RESPAWN_X) pipe3_x <= RESPAWN_X;
-                    gap3_top <= clamp_gap_top(lfsr[9:0] ^ 10'h2AA); // another mix for variety
-                    gap3_size<= clamp_gap_size({1'b0, (lfsr[9:3] ^ 7'h12)});
+                    gap3_top <= rand_gap_top(lfsr[9:0] ^ 10'h2AA); // another mix for variety
+                    gap3_size<= rand_gap_size({1'b0, (lfsr[9:3] ^ 7'h12)});
                 end
 
                 if (pipe4_x > PIPE_SPEED)
@@ -177,8 +174,8 @@ module pipe_renderer(
                                  ? (pipe1_x > pipe2_x ? pipe1_x : pipe2_x)
                                  : pipe3_x) + PIPE_SPACING;
                     if (pipe4_x < RESPAWN_X) pipe4_x <= RESPAWN_X;
-                    gap4_top <= clamp_gap_top(lfsr[9:0] ^ 10'h0F0);
-                    gap4_size<= clamp_gap_size({1'b0, (lfsr[9:3] ^ 7'h35)});
+                    gap4_top <= rand_gap_top(lfsr[9:0] ^ 10'h0F0);
+                    gap4_size<= rand_gap_size({1'b0, (lfsr[9:3] ^ 7'h35)});
                 end
             end else begin
                 anim_counter <= anim_counter + 1;

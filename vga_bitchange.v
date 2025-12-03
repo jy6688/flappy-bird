@@ -29,7 +29,7 @@ module vga_bitchange(
 	// ==========================
 	// BIRD SPRITE (16x16 PX)
 	// ==========================
-	localparam BIRD_X = 100;
+	localparam BIRD_X = 200;  // keep inside visible 640x480 area (bright region starts ~144)
 	localparam BIRD_Y = 220;
 	localparam SPRITE_W = 16;
 	localparam SPRITE_H = 16;
