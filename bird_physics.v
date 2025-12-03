@@ -15,6 +15,8 @@ module bird_physics(
     integer velocity;
     integer next_y;
     reg [19:0] tick;
+    
+    integer vtemp;
 
     initial begin
         bird_y = 200;
@@ -35,7 +37,6 @@ module bird_physics(
                 if (!alive) begin
                     if (flap_btn) begin
                         // starting flap
-                        integer vtemp;
                         vtemp = FLAP_POWER;
                         next_y = bird_y + vtemp;
                         // check collisions on the next position
@@ -56,7 +57,6 @@ module bird_physics(
                 end
                 else begin
                     // Normal physics while alive
-                    integer vtemp;
                     if (flap_btn)
                         vtemp = FLAP_POWER;
                     else begin
