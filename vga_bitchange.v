@@ -19,12 +19,14 @@ module vga_bitchange(
     localparam BIRD_X   = 200;
 
     wire [9:0] bird_y;
+    wire bird_alive;
 
     bird_physics bp(
         .clk(clk),
         .reset(reset),   // RESET GOES IN
         .flap_btn(button), // FLAP BUTTON
-        .bird_y(bird_y)
+        .bird_y(bird_y),
+        .alive(bird_alive)
     );
 
     wire show_sprite =
@@ -46,7 +48,11 @@ module vga_bitchange(
     );
 
     wire pipe_pixel;
+    // Connect pipe renderer to clock, reset and enable it only while bird is alive (game running)
     pipe_renderer pipes(
+        .clk(clk),
+        .reset(reset),
+        .enable(bird_alive),
         .hCount(hCount),
         .vCount(vCount),
         .pipe_pixel(pipe_pixel)
