@@ -20,11 +20,13 @@ module vga_bitchange(
 
     wire [9:0] bird_y;
     wire bird_alive;
+    wire pipe_collision;
 
     bird_physics bp(
         .clk(clk),
         .reset(reset),   // RESET GOES IN
         .flap_btn(button), // FLAP BUTTON
+        .collision(pipe_collision),
         .bird_y(bird_y),
         .alive(bird_alive)
     );
@@ -55,7 +57,12 @@ module vga_bitchange(
         .enable(bird_alive),
         .hCount(hCount),
         .vCount(vCount),
-        .pipe_pixel(pipe_pixel)
+        .bird_x(BIRD_X),
+        .bird_y(bird_y),
+        .bird_w(SPRITE_W),
+        .bird_h(SPRITE_H),
+        .pipe_pixel(pipe_pixel),
+        .pipe_collision(pipe_collision)
     );
 
     initial score = 0;

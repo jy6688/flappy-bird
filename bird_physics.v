@@ -4,6 +4,7 @@ module bird_physics(
     input wire clk,
     input wire reset,
     input wire flap_btn,
+    input wire collision,        // high when the bird intersects a pipe
     output reg [9:0] bird_y,
     output reg alive
 );
@@ -61,34 +62,41 @@ module bird_physics(
                     end
                 end
                 else begin
-                    // Normal physics while alive
-                    if (flap_btn)
-                        vtemp = FLAP_POWER;
-                    else begin
-                        vtemp = velocity + GRAVITY;
-                        if (vtemp > MAX_FALL)
-                            vtemp = MAX_FALL;
-                    end
-
-                    // compute next position using signed arithmetic
-                    next_y = bird_y + vtemp;
-
-                    // collision with ceiling or floor => stop the game (alive -> 0)
-                    if (next_y <= 0) begin
-                        bird_y <= 0;
+                    // stop immediately on pipe collision
+                    if (collision) begin
                         alive <= 0;
                         velocity <= 0;
                         game_over <= 1;
-                    end
-                    else if (next_y >= 480-24) begin
-                        bird_y <= 480-24;
-                        alive <= 0;
-                        velocity <= 0;
-                        game_over <= 1;
-                    end
-                    else begin
-                        velocity <= vtemp;
-                        bird_y <= next_y;
+                    end else begin
+                        // Normal physics while alive
+                        if (flap_btn)
+                            vtemp = FLAP_POWER;
+                        else begin
+                            vtemp = velocity + GRAVITY;
+                            if (vtemp > MAX_FALL)
+                                vtemp = MAX_FALL;
+                        end
+
+                        // compute next position using signed arithmetic
+                        next_y = bird_y + vtemp;
+
+                        // collision with ceiling or floor => stop the game (alive -> 0)
+                        if (next_y <= 0) begin
+                            bird_y <= 0;
+                            alive <= 0;
+                            velocity <= 0;
+                            game_over <= 1;
+                        end
+                        else if (next_y >= 480-24) begin
+                            bird_y <= 480-24;
+                            alive <= 0;
+                            velocity <= 0;
+                            game_over <= 1;
+                        end
+                        else begin
+                            velocity <= vtemp;
+                            bird_y <= next_y;
+                        end
                     end
                 end
         end

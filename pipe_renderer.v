@@ -12,7 +12,12 @@ module pipe_renderer(
     input  wire        enable,
     input  wire [9:0]  hCount,
     input  wire [9:0]  vCount,
-    output reg         pipe_pixel
+    input  wire [9:0]  bird_x,
+    input  wire [9:0]  bird_y,
+    input  wire [4:0]  bird_w,
+    input  wire [4:0]  bird_h,
+    output reg         pipe_pixel,
+    output wire        pipe_collision
 );
 
     // ===============================
@@ -58,6 +63,18 @@ module pipe_renderer(
     // Current gap positions and sizes (mutable)
     reg [9:0] gap1_top, gap2_top, gap3_top, gap4_top;
     reg [8:0] gap1_size, gap2_size, gap3_size, gap4_size;
+
+    // Bird geometry for collision checks
+    wire [10:0] bird_left   = {1'b0, bird_x};
+    wire [10:0] bird_right  = bird_left + bird_w;
+    wire [10:0] bird_top    = {1'b0, bird_y};
+    wire [10:0] bird_bottom = bird_top + bird_h;
+
+    // Gap bottoms for simpler comparisons
+    wire [10:0] gap1_bottom = gap1_top + gap1_size;
+    wire [10:0] gap2_bottom = gap2_top + gap2_size;
+    wire [10:0] gap3_bottom = gap3_top + gap3_size;
+    wire [10:0] gap4_bottom = gap4_top + gap4_size;
 
     // ===============================
     // Animation Counter
@@ -105,6 +122,20 @@ module pipe_renderer(
         if (raw < GAP_MIN_SIZE)      clamp_gap_size = GAP_MIN_SIZE;
         else if (raw > GAP_MAX_SIZE) clamp_gap_size = GAP_MAX_SIZE;
         else                         clamp_gap_size = raw;
+    end
+    endfunction
+
+    // Helper: detect collision of the bird with a specific pipe column
+    function collision_for_pipe;
+        input [10:0] pipe_x;
+        input [10:0] gap_top;
+        input [10:0] gap_bottom;
+    begin
+        collision_for_pipe = 1'b0;
+        if ((bird_right > pipe_x) && (bird_left < pipe_x + PIPE_WIDTH)) begin
+            if ((bird_top < gap_top) || (bird_bottom > gap_bottom))
+                collision_for_pipe = 1'b1;
+        end
     end
     endfunction
 
@@ -192,6 +223,7 @@ module pipe_renderer(
     wire pipe1_pixel =
         (hCount >= pipe1_x && hCount < pipe1_x + PIPE_WIDTH) &&
         !((vCount >= gap1_top) && (vCount < gap1_top + gap1_size));
+    wire pipe1_collision = collision_for_pipe(pipe1_x, gap1_top, gap1_bottom);
 
     // -----------------------
     // Pipe #2 pixel check
@@ -199,6 +231,7 @@ module pipe_renderer(
     wire pipe2_pixel =
         (hCount >= pipe2_x && hCount < pipe2_x + PIPE_WIDTH) &&
         !((vCount >= gap2_top) && (vCount < gap2_top + gap2_size));
+    wire pipe2_collision = collision_for_pipe(pipe2_x, gap2_top, gap2_bottom);
 
     // -----------------------
     // Pipe #3 pixel check
@@ -206,6 +239,7 @@ module pipe_renderer(
     wire pipe3_pixel =
         (hCount >= pipe3_x && hCount < pipe3_x + PIPE_WIDTH) &&
         !((vCount >= gap3_top) && (vCount < gap3_top + gap3_size));
+    wire pipe3_collision = collision_for_pipe(pipe3_x, gap3_top, gap3_bottom);
 
     // -----------------------
     // Pipe #4 pixel check
@@ -213,11 +247,14 @@ module pipe_renderer(
     wire pipe4_pixel =
         (hCount >= pipe4_x && hCount < pipe4_x + PIPE_WIDTH) &&
         !((vCount >= gap4_top) && (vCount < gap4_top + gap4_size));
+    wire pipe4_collision = collision_for_pipe(pipe4_x, gap4_top, gap4_bottom);
 
 
     // -----------------------
     // Output combined result
     // -----------------------
+    assign pipe_collision = pipe1_collision | pipe2_collision | pipe3_collision | pipe4_collision;
+
     always @(*) begin
         pipe_pixel = pipe1_pixel | pipe2_pixel | pipe3_pixel | pipe4_pixel;
     end
