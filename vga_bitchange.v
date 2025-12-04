@@ -5,36 +5,61 @@ module vga_bitchange(
     input reset,
     input bright,
     input button,                // flap button
-    input button,
     input [9:0] hCount, vCount,
     output reg [11:0] rgb,
     output reg [15:0] score
 );
 
+    // ---------------- COLORS ---------------- //
     localparam BLACK        = 12'h000;
     localparam BACKGROUND   = 12'h5CC;
     localparam PIPE_COLOR   = 12'h0F0;
     localparam TEXT_COLOR   = 12'hFFF;
     localparam GROUND_COLOR = 12'hDD9; // Flappy Bird ground tan
-    // ---------------- COLORS ---------------- //
-    localparam BLACK       = 12'h000;
-    localparam BACKGROUND  = 12'h5CC;
-    localparam PIPE_COLOR  = 12'h0F0;
 
-    // ---------------- BIRD SETTINGS ---------------- //
+    // ---------------- GEOMETRY ---------------- //
+    localparam integer PIXEL_SCALE  = 2; // scale up 5x7 font
+    localparam integer CHAR_W = 6 * PIXEL_SCALE;   // 5 px glyph + 1 px spacing
+    localparam integer CHAR_H = 8 * PIXEL_SCALE;   // 7 px glyph + 1 px spacing
+    localparam integer ACTIVE_X_START = 144;       // visible area offset from display_controller
+    localparam integer ACTIVE_Y_START = 35;
+    localparam integer ACTIVE_WIDTH   = 640;
+    localparam integer ACTIVE_HEIGHT  = 481;       // v = 35..515 inclusive
+
     localparam SPRITE_W = 24;
     localparam SPRITE_H = 24;
     localparam BIRD_X   = 200;
+    localparam integer GROUND_H = 24;
+    localparam integer GROUND_Y = ACTIVE_Y_START + ACTIVE_HEIGHT - GROUND_H;
+    localparam integer SCORE_Y = ACTIVE_Y_START + (8 * PIXEL_SCALE);
+    localparam integer GO_Y    = ACTIVE_Y_START + (ACTIVE_HEIGHT / 2) - CHAR_H;
+    localparam integer GO_SCORE_Y = GO_Y + CHAR_H + (4 * PIXEL_SCALE);
+    localparam integer GO_LEN  = 9;   // "GAME OVER"
 
-    // ---------------- BIRD PHYSICS ---------------- //
+    // Limited glyph codes
+    localparam [4:0] CHAR_G     = 5'd10;
+    localparam [4:0] CHAR_A     = 5'd11;
+    localparam [4:0] CHAR_M     = 5'd12;
+    localparam [4:0] CHAR_E     = 5'd13;
+    localparam [4:0] CHAR_O     = 5'd14;
+    localparam [4:0] CHAR_V     = 5'd15;
+    localparam [4:0] CHAR_R     = 5'd16;
+    localparam [4:0] CHAR_SPACE = 5'd31;
+
+    // ---------------- BIRD ---------------- //
     wire [9:0] bird_y;
     wire bird_alive;
     wire pipe_collision;
 
-    bird_physics bp(
+    bird_physics #(
+        .Y_MIN(ACTIVE_Y_START),
+        .ACTIVE_HEIGHT(ACTIVE_HEIGHT),
+        .SPRITE_H(SPRITE_H),
+        .GROUND_H(GROUND_H)
+    ) bp(
         .clk(clk),
-        .reset(reset),
-        .flap_btn(button),
+        .reset(reset),   // RESET GOES IN
+        .flap_btn(button), // FLAP BUTTON
         .collision(pipe_collision),
         .bird_y(bird_y),
         .alive(bird_alive)
@@ -43,9 +68,9 @@ module vga_bitchange(
     // ---------------- BIRD SPRITE ---------------- //
     wire show_sprite =
         (hCount >= BIRD_X) &&
-        (hCount <  BIRD_X + SPRITE_W) &&
+        (hCount < BIRD_X + SPRITE_W) &&
         (vCount >= bird_y) &&
-        (vCount <  bird_y + SPRITE_H);
+        (vCount < bird_y + SPRITE_H);
 
     wire [4:0] sprite_row = vCount - bird_y;
     wire [4:0] sprite_col = hCount - BIRD_X;
@@ -60,7 +85,8 @@ module vga_bitchange(
 
     // ---------------- PIPE RENDERER ---------------- //
     wire pipe_pixel;
-    wire pipe_pass;
+    wire pipe_passed;
+    wire ground_on = bright && (vCount >= GROUND_Y) && (vCount < GROUND_Y + GROUND_H);
 
     pipe_renderer pipes(
         .clk(clk),
@@ -68,75 +94,16 @@ module vga_bitchange(
         .enable(bird_alive),
         .hCount(hCount),
         .vCount(vCount),
-        .bird_x(BIRD_X + (SPRITE_W/2)),     // <<< FIXED (use bird center for scoring)
+        .bird_x(BIRD_X),
         .bird_y(bird_y),
         .bird_w(SPRITE_W),
         .bird_h(SPRITE_H),
         .pipe_pixel(pipe_pixel),
         .pipe_collision(pipe_collision),
-        .pipe_pass(pipe_pass)
+        .pipe_passed(pipe_passed)
     );
 
-    // ---------------- SCORE COUNTER ---------------- //
-    reg prev_pass = 0;
-
-    always @(posedge clk or posedge reset) begin
-        if(reset) begin
-            score <= 0;
-            prev_pass <= 0;
-        end
-        else begin
-            if(pipe_pass && !prev_pass && bird_alive)
-                score <= score + 1;
-            prev_pass <= pipe_pass;
-        end
-    end
-
-    // ---------------- PIXEL OUTPUT ---------------- //
-    always @(*) begin
-        if(!bright)
-            rgb = BLACK;
-        else if(show_sprite)
-            rgb = sprite_px;
-        else if(pipe_pixel)
-            rgb = PIPE_COLOR;
-        else
-            rgb = BACKGROUND;
-    end
-
-    localparam integer PIXEL_SCALE  = 2; // scale up 5x7 font
-    localparam integer CHAR_W = 6 * PIXEL_SCALE;   // 5 px glyph + 1 px spacing
-    localparam integer CHAR_H = 8 * PIXEL_SCALE;   // 7 px glyph + 1 px spacing
-    localparam integer ACTIVE_X_START = 144;       // visible area offset from display_controller
-    localparam integer ACTIVE_Y_START = 35;
-    localparam integer ACTIVE_WIDTH   = 640;
-    localparam integer ACTIVE_HEIGHT  = 481;       // matches bright region (v=35..515)
-
-    // Limited glyph codes
-    localparam [4:0] CHAR_G     = 5'd10;
-    localparam [4:0] CHAR_A     = 5'd11;
-    localparam [4:0] CHAR_M     = 5'd12;
-    localparam [4:0] CHAR_E     = 5'd13;
-    localparam [4:0] CHAR_O     = 5'd14;
-    localparam [4:0] CHAR_V     = 5'd15;
-    localparam [4:0] CHAR_R     = 5'd16;
-    localparam [4:0] CHAR_SPACE = 5'd31;
-
-    localparam SPRITE_W = 24;
-    localparam SPRITE_H = 24;
-    localparam BIRD_X   = 200;
-    localparam integer GROUND_H = 24;
-    localparam integer GROUND_Y = ACTIVE_Y_START + ACTIVE_HEIGHT - GROUND_H;
-    localparam integer SCORE_Y = ACTIVE_Y_START + (8 * PIXEL_SCALE);
-    localparam integer GO_Y    = ACTIVE_Y_START + (ACTIVE_HEIGHT / 2) - CHAR_H;
-    localparam integer GO_SCORE_Y = GO_Y + CHAR_H + (4 * PIXEL_SCALE);
-    localparam integer GO_LEN  = 9;   // "GAME OVER"
-
-    wire [9:0] bird_y;
-    wire bird_alive;
-    wire pipe_collision;
-    wire pipe_passed;
-
+    // ---------------- SCORE / GAME OVER STATE ---------------- //
     reg was_alive;
     reg game_over;
 
@@ -156,6 +123,27 @@ module vga_bitchange(
     wire game_over_text_on;
     wire game_over_score_on;
 
+    initial score = 0;
+
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            score      <= 0;
+            was_alive  <= 0;
+            game_over  <= 0;
+        end else begin
+            was_alive <= bird_alive;
+            if (pipe_passed && bird_alive)
+                score <= score + 1;
+
+            // latch game over when alive drops
+            if (was_alive && !bird_alive)
+                game_over <= 1'b1;
+            else if (bird_alive)
+                game_over <= 1'b0;
+        end
+    end
+
+    // ---------------- TEXT RENDERING ---------------- //
     function [4:0] score_code;
         input [1:0] idx;
         input [1:0] len;
@@ -196,9 +184,7 @@ module vga_bitchange(
     end
     endfunction
 
-    // -----------------------
     // Text rendering helpers
-    // -----------------------
     wire score_line_active =
         (vCount >= SCORE_Y) && (vCount < SCORE_Y + CHAR_H) &&
         (hCount >= score_x_start) && (hCount < score_x_start + score_width);
@@ -414,69 +400,7 @@ module vga_bitchange(
     end
     endfunction
 
-    bird_physics #(
-        .Y_MIN(ACTIVE_Y_START),
-        .ACTIVE_HEIGHT(ACTIVE_HEIGHT),
-        .SPRITE_H(SPRITE_H),
-        .GROUND_H(GROUND_H)
-    ) bp(
-        .clk(clk),
-        .reset(reset),   // RESET GOES IN
-        .flap_btn(button), // FLAP BUTTON
-        .collision(pipe_collision),
-        .bird_y(bird_y),
-        .alive(bird_alive)
-    );
-
-    wire show_sprite =
-        (hCount >= BIRD_X) &&
-        (hCount < BIRD_X + SPRITE_W) &&
-        (vCount >= bird_y) &&
-        (vCount < bird_y + SPRITE_H);
-
-    wire [4:0] sprite_row = vCount - bird_y;
-    wire [4:0] sprite_col = hCount - BIRD_X;
-
-    wire [11:0] sprite_px;
-
-    wire pipe_pixel;
-    wire ground_on = bright && (vCount >= GROUND_Y) && (vCount < GROUND_Y + GROUND_H);
-    // Connect pipe renderer to clock, reset and enable it only while bird is alive (game running)
-    pipe_renderer pipes(
-        .clk(clk),
-        .reset(reset),
-        .enable(bird_alive),
-        .hCount(hCount),
-        .vCount(vCount),
-        .bird_x(BIRD_X),
-        .bird_y(bird_y),
-        .bird_w(SPRITE_W),
-        .bird_h(SPRITE_H),
-        .pipe_pixel(pipe_pixel),
-        .pipe_collision(pipe_collision),
-        .pipe_passed(pipe_passed)
-    );
-
-    initial score = 0;
-
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            score      <= 0;
-            was_alive  <= 0;
-            game_over  <= 0;
-        end else begin
-            was_alive <= bird_alive;
-            if (pipe_passed && bird_alive)
-                score <= score + 1;
-
-            // latch game over when alive drops
-            if (was_alive && !bird_alive)
-                game_over <= 1'b1;
-            else if (bird_alive)
-                game_over <= 1'b0;
-        end
-    end
-
+    // ---------------- PIXEL OUTPUT ---------------- //
     always @(*) begin
         if (!bright)
             rgb = BLACK;
@@ -486,7 +410,7 @@ module vga_bitchange(
             rgb = TEXT_COLOR;
         else if (show_sprite)
             rgb = sprite_px;
-        else if (ground_on)        // draw ground in front of pipes
+        else if (ground_on)
             rgb = GROUND_COLOR;
         else if (pipe_pixel)
             rgb = PIPE_COLOR;

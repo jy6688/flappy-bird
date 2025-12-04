@@ -20,10 +20,6 @@ module bird_physics #(
     localparam integer CEIL_LIMIT  = Y_MIN;
     localparam integer FLOOR_LIMIT = Y_MIN + ACTIVE_HEIGHT - GROUND_H - SPRITE_H;
     localparam integer START_Y     = Y_MIN + 200;
-    // ↓ Slightly lighter gravity & softer flap
-    localparam GRAVITY    = 1;    // was 2
-    localparam FLAP_POWER = -7;   // was -6
-    localparam MAX_FALL   = 4;    // fall slower
 
     integer velocity;
     integer next_y;
