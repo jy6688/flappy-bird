@@ -12,7 +12,17 @@ module pipe_renderer(
     input  wire        enable,
     input  wire [9:0]  hCount,
     input  wire [9:0]  vCount,
+<<<<<<< Updated upstream
     output reg         pipe_pixel
+=======
+    input  wire [9:0]  bird_x,
+    input  wire [9:0]  bird_y,
+    input  wire [4:0]  bird_w,
+    input  wire [4:0]  bird_h,
+    output reg         pipe_pixel,
+    output wire        pipe_collision,
+    output reg         pipe_passed     // pulse high for one clk when any pipe crosses bird_x
+>>>>>>> Stashed changes
 );
 
     // ===============================
@@ -71,6 +81,11 @@ module pipe_renderer(
     wire lfsr_feedback = lfsr[9] ^ lfsr[6]; // x^10 + x^7 + 1
 
     // ===============================
+    // Score pulse (pipe passed bird)
+    // ===============================
+    reg pass_next;
+
+    // ===============================
     // INITIALIZATION
     // ===============================
     initial begin
@@ -88,6 +103,7 @@ module pipe_renderer(
         gap3_size = GAP_MIN_SIZE;
         gap4_size = GAP_MIN_SIZE;
         lfsr = 10'h3FF; // non-zero seed
+        pipe_passed = 1'b0;
     end
 
     // Helper: wrap random values into valid ranges instead of clamping to the edges
@@ -124,7 +140,9 @@ module pipe_renderer(
             gap3_size     <= GAP_MIN_SIZE + 20;
             gap4_size     <= GAP_MIN_SIZE + 30;
             lfsr          <= 10'h3FF;
+            pipe_passed   <= 1'b0;
         end else if (enable) begin
+            pass_next = 1'b0;
             if (anim_counter == SPEED_DIVIDER-1) begin
                 anim_counter <= 0;
 
@@ -133,9 +151,12 @@ module pipe_renderer(
 
                 // helper: furthest right position among others
                 // Move left; wrap to furthest-right + spacing keeping consistent separation
-                if (pipe1_x > PIPE_SPEED)
+                if (pipe1_x > PIPE_SPEED) begin
+                    if ((pipe1_x + PIPE_WIDTH > bird_left) &&
+                        ((pipe1_x - PIPE_SPEED) + PIPE_WIDTH <= bird_left))
+                        pass_next = 1'b1;
                     pipe1_x <= pipe1_x - PIPE_SPEED;
-                else begin
+                end else begin
                     // furthest of pipe2/pipe3/pipe4 + spacing, at least RESPAWN_X
                     pipe1_x  <= ((pipe2_x > pipe3_x ? pipe2_x : pipe3_x) > pipe4_x
                                  ? (pipe2_x > pipe3_x ? pipe2_x : pipe3_x)
@@ -145,9 +166,12 @@ module pipe_renderer(
                     gap1_size<= rand_gap_size({1'b0, lfsr[9:3]}); // use upper bits for size
                 end
 
-                if (pipe2_x > PIPE_SPEED)
+                if (pipe2_x > PIPE_SPEED) begin
+                    if ((pipe2_x + PIPE_WIDTH > bird_left) &&
+                        ((pipe2_x - PIPE_SPEED) + PIPE_WIDTH <= bird_left))
+                        pass_next = 1'b1;
                     pipe2_x <= pipe2_x - PIPE_SPEED;
-                else begin
+                end else begin
                     pipe2_x  <= ((pipe1_x > pipe3_x ? pipe1_x : pipe3_x) > pipe4_x
                                  ? (pipe1_x > pipe3_x ? pipe1_x : pipe3_x)
                                  : pipe4_x) + PIPE_SPACING;
@@ -156,9 +180,12 @@ module pipe_renderer(
                     gap2_size<= rand_gap_size({1'b0, (lfsr[9:3] ^ 7'h2D)});
                 end
 
-                if (pipe3_x > PIPE_SPEED)
+                if (pipe3_x > PIPE_SPEED) begin
+                    if ((pipe3_x + PIPE_WIDTH > bird_left) &&
+                        ((pipe3_x - PIPE_SPEED) + PIPE_WIDTH <= bird_left))
+                        pass_next = 1'b1;
                     pipe3_x <= pipe3_x - PIPE_SPEED;
-                else begin
+                end else begin
                     pipe3_x  <= ((pipe1_x > pipe2_x ? pipe1_x : pipe2_x) > pipe4_x
                                  ? (pipe1_x > pipe2_x ? pipe1_x : pipe2_x)
                                  : pipe4_x) + PIPE_SPACING;
@@ -167,9 +194,12 @@ module pipe_renderer(
                     gap3_size<= rand_gap_size({1'b0, (lfsr[9:3] ^ 7'h12)});
                 end
 
-                if (pipe4_x > PIPE_SPEED)
+                if (pipe4_x > PIPE_SPEED) begin
+                    if ((pipe4_x + PIPE_WIDTH > bird_left) &&
+                        ((pipe4_x - PIPE_SPEED) + PIPE_WIDTH <= bird_left))
+                        pass_next = 1'b1;
                     pipe4_x <= pipe4_x - PIPE_SPEED;
-                else begin
+                end else begin
                     pipe4_x  <= ((pipe1_x > pipe2_x ? pipe1_x : pipe2_x) > pipe3_x
                                  ? (pipe1_x > pipe2_x ? pipe1_x : pipe2_x)
                                  : pipe3_x) + PIPE_SPACING;
@@ -180,6 +210,9 @@ module pipe_renderer(
             end else begin
                 anim_counter <= anim_counter + 1;
             end
+            pipe_passed <= pass_next;
+        end else begin
+            pipe_passed <= 1'b0;
         end
     end
 
