@@ -1,9 +1,6 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Pipe Renderer Module
-// Draws two vertical Flappy Bird style pipes with gaps.
-// Can later be animated by changing PIPE_X positions.
-//
+// Pipe Renderer – Flappy Bird Pipes With Working Score
 //////////////////////////////////////////////////////////////////////////////////
 
 module pipe_renderer(
@@ -82,11 +79,7 @@ module pipe_renderer(
     // ===============================
     reg [21:0] anim_counter;
 
-    // ===============================
-    // Pseudo-Random Generator (LFSR)
-    // ===============================
-    reg [9:0] lfsr;
-    wire lfsr_feedback = lfsr[9] ^ lfsr[6]; // x^10 + x^7 + 1
+    reg [10:0] pipe1_x, pipe2_x, pipe3_x, pipe4_x;
 
     // ===============================
     // Score pulse (pipe passed bird)
@@ -114,22 +107,36 @@ module pipe_renderer(
         pipe_passed = 1'b0;
     end
 
-    // Helper: clamp gap top within limits
-    function [9:0] clamp_gap_top(input [9:0] raw);
-    begin
-        if (raw < GAP_MIN_TOP)      clamp_gap_top = GAP_MIN_TOP;
-        else if (raw > GAP_MAX_TOP) clamp_gap_top = GAP_MAX_TOP;
-        else                        clamp_gap_top = raw;
-    end
-    endfunction
+    localparam GAP_MIN_TOP=60, GAP_MAX_TOP=320;
+    localparam GAP_MIN_SIZE=150, GAP_MAX_SIZE=150;
 
-    // Helper: clamp gap size within limits
-    function [8:0] clamp_gap_size(input [8:0] raw);
-    begin
-        if (raw < GAP_MIN_SIZE)      clamp_gap_size = GAP_MIN_SIZE;
-        else if (raw > GAP_MAX_SIZE) clamp_gap_size = GAP_MAX_SIZE;
-        else                         clamp_gap_size = raw;
+    reg [9:0] gap1_top,gap2_top,gap3_top,gap4_top;
+    reg [8:0] gap1_size,gap2_size,gap3_size,gap4_size;
+
+    wire [10:0] bird_left   ={1'b0,bird_x};
+    wire [10:0] bird_right  =bird_left + bird_w;
+    wire [10:0] bird_top    ={1'b0,bird_y};
+    wire [10:0] bird_bottom =bird_top + bird_h;
+
+    wire [10:0] gap1_bottom=gap1_top+gap1_size,
+                gap2_bottom=gap2_top+gap2_size,
+                gap3_bottom=gap3_top+gap3_size,
+                gap4_bottom=gap4_top+gap4_size;
+
+    reg [21:0] anim_counter;
+    reg [9:0]  lfsr;
+    wire lfsr_feedback=lfsr[9]^lfsr[6];
+
+    initial begin
+        pipe1_x=PIPE1_INIT; pipe2_x=PIPE2_INIT;
+        pipe3_x=PIPE3_INIT; pipe4_x=PIPE4_INIT;
+        gap1_top=180; gap2_top=240; gap3_top=300; gap4_top=120;
+        gap1_size=150; gap2_size=150; gap3_size=150; gap4_size=150;
+        anim_counter=0; pipe_pass=0; lfsr=10'h3FF;
     end
+
+    function [9:0] clamp_top(input[9:0]r);
+        clamp_top=(r<GAP_MIN_TOP)?GAP_MIN_TOP:(r>GAP_MAX_TOP?GAP_MAX_TOP:r);
     endfunction
 
     // Helper: detect collision of the bird with a specific pipe column
